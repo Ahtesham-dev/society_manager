@@ -74,4 +74,4 @@ membershipSchema.index({ society: 1, flatNo: 1 });
 
 membershipSchema.index({ society: 1, role: 1 });
 
-module.exports = mongoose.model('Membership', membershipSchema);
+module.exports = mongoose.model('Membership', membershipSchema)
