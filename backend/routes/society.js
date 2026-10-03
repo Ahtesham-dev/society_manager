@@ -4,6 +4,7 @@ const { createSociety } = require('../controller/society');
 const { protect } = require('../middleware/auth');
 
 router.post('/', protect, createSociety);
+router.get('/my', protect, getMySocieties); //Get all societies the logged-in user belongs to
 
 module.exports = router;
 

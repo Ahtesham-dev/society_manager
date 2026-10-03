@@ -53,9 +53,9 @@ const createSociety = async (req, res) => {
       user: req.user._id,
       society: society._id,
       wing: wing.toUpperCase(),
-      floor,
-      flatNo,
-      fullFlatNo,
+      floor: floor,              
+      flatNo: flatNo,           
+      fullFlatNo: fullFlatNo,
       role: 'CHAIRMAN',
       status: 'ACTIVE',          // No approval needed — as they created it
       addedBy: req.user._id      // Self-assigned
@@ -97,4 +97,39 @@ const createSociety = async (req, res) => {
   }
 };
 
-module.exports = { createSociety };
+
+// Flow: Get logged-in user → Find all their ACTIVE memberships → Return society details
+const getMySocieties = async (req, res) => {
+  try {
+    const memberships = await Membership.find({
+      user: req.user._id,
+      status: 'ACTIVE'
+    }).populate('society', 'name societyId address logo configuration');
+    
+
+    // If user has no societies yet, that's not an error — just empty list
+    res.status(200).json({
+      success: true,
+      count: memberships.length,
+      societies: memberships.map(m => ({
+        membershipId: m._id,
+        society: m.society,        // full society object (name, societyId, address, etc.)
+        role: m.role,
+        flatNo: m.fullFlatNo,
+        wing: m.wing,
+        floor: m.floor,
+        status: m.status,
+        joinedDate: m.joinedDate
+      }))
+    });
+
+  } catch (error) {
+    console.error('Get My Societies Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching societies'
+    });
+  }
+};
+
+module.exports = { createSociety, getMySocieties };
