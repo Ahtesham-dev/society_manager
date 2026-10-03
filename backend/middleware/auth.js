@@ -8,32 +8,28 @@ const Membership = require('../models/membership');
 const protect = async (req, res, next) => {
     try {
         let token;
-
-        // STEP 1: Find token in request
         // Frontend sends token in Header: Authorization: Bearer <token>
         if (
             req.headers.authorization &&
             req.headers.authorization.startsWith('Bearer ')
         ) {
-            // Extract just the token part
+            // Extract just the 
             // "Bearer eyJhbGci..." → "eyJhbGci..."
             token = req.headers.authorization.split(' ')[1];
         }
 
-        // STEP 2: Check token exists
+        //Checking if  token exists
         if (!token) {
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
                 message: 'Access denied. Please login first.'
             });
         }
 
-        // STEP 3: Verify token is valid and not expired
-        // jwt.verify throws error if token is tampered or expired
+        // Verify token 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // decoded = { id: "user_database_id", iat: 1234567, exp: 1234567 }
-
-        // STEP 4: Find user from token
+        
+        // Find user from token
         const user = await User.findById(decoded.id);
 
         if (!user) {
@@ -43,11 +39,11 @@ const protect = async (req, res, next) => {
             });
         }
 
-        // STEP 5: Check account is active
+        //Check account is active
         if (!user.isActive) {
             return res.status(401).json({
                 success: false,
-                message: 'Account deactivated'
+                message: 'Account deactivated' 
             });
         }
 
@@ -80,23 +76,11 @@ const protect = async (req, res, next) => {
     }
 };
 
-// =============================================
-// AUTHORIZE MIDDLEWARE (Role-Based Access)
-// =============================================
-// Use AFTER protect middleware
-// Checks if logged-in user has the right ROLE
-//
-// Usage: authorize('CHAIRMAN', 'SECRETARY')
-// Meaning: Only Chairman or Secretary can access this route
+
 
 const authorize = (...roles) => {
-    // This returns a middleware function
     return async (req, res, next) => {
         try {
-            // req.user exists because protect ran before this
-
-            // Find membership for this user in this society
-            // societyId comes from request params or body
             const societyId = 
                 req.params.societyId || 
                 req.body.societyId || 
@@ -109,7 +93,6 @@ const authorize = (...roles) => {
                 });
             }
 
-            // Find active membership
             const membership = await Membership.findOne({
                 user: req.user._id,
                 society: societyId,
@@ -122,10 +105,7 @@ const authorize = (...roles) => {
                     message: 'You are not a member of this society'
                 });
             }
-
-            // Check if their role is in allowed roles
-            // Example: roles = ['CHAIRMAN', 'SECRETARY']
-            // membership.role = 'TREASURER' → DENIED
+            
             if (!roles.includes(membership.role)) {
                 return res.status(403).json({
                     success: false,
