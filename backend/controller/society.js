@@ -231,6 +231,22 @@ const addMember = async (req, res) => {
       });
     }
 
+    //Check if SECRETARY/TREASURER already taken
+    if (finalRole === 'SECRETARY' || finalRole === 'TREASURER') {
+      const roleAlreadyTaken = await Membership.findOne({
+        society: societyId,
+        role: finalRole,
+        status: 'ACTIVE'
+      }).populate('user', 'name userId');
+
+      if (roleAlreadyTaken) {
+        return res.status(400).json({
+          success: false,
+          message: `${finalRole} role is already assigned to ${roleAlreadyTaken.user.name} (${roleAlreadyTaken.user.userId}). Remove or change their role first.`
+        });
+      }
+    }
+
     const fullFlatNo = `${wing.toUpperCase()}-${flatNo}`;
 
     //Creating the membership
@@ -267,4 +283,86 @@ const addMember = async (req, res) => {
   }
 };
 
-module.exports = { createSociety, getMySocieties, getSocietyDetails , addMember };
+const updateMemberRole = async (req, res) => {
+  try {
+    const { societyId, membershipId } = req.params;
+    const { role } = req.body;
+
+    // Validate if role was sent
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a role'
+      });
+    }
+
+    // Only these roles can be assigned through this route
+    const allowedRoles = ['MEMBER', 'SECRETARY', 'TREASURER'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role must be MEMBER, SECRETARY or TREASURER'
+      });
+    }
+
+    //Find the membership  that is to be update
+    //check BOTH membershipId AND society - so Chairman of Society A cannot accidentally (or maliciously) update a membership from Society B
+    const membership = await Membership.findOne({
+      _id: membershipId,
+      society: societyId
+    });
+
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        message: 'Membership not found in this society'
+      });
+    }
+
+    //Block changing a CHAIRMAN's role through this simple route
+    if (membership.role === 'CHAIRMAN') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot change Chairman role here. Use chairman transfer process.'
+      });
+    }
+
+    //If assigning SECRETARY/TREASURER, check it's not already taken
+    // by SOMEONE ELSE (exclude this membership itself from the check)
+    if (role === 'SECRETARY' || role === 'TREASURER') {
+      const roleAlreadyTaken = await Membership.findOne({
+        _id: { $ne: membershipId },   // $ne means "not equal" - exclude current membership
+        society: societyId,
+        role: role,
+        status: 'ACTIVE'
+      }).populate('user', 'name userId');
+
+      if (roleAlreadyTaken) {
+        return res.status(400).json({
+          success: false,
+          message: `${role} role is already assigned to ${roleAlreadyTaken.user.name} (${roleAlreadyTaken.user.userId}). Remove or change their role first.`
+        });
+      }
+    }
+
+    //Update and save
+    const oldRole = membership.role;
+    membership.role = role;
+    await membership.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Role updated from ${oldRole} to ${role}`,
+      membership
+    });
+
+  } catch (error) {
+    console.error('Update Member Role Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating role'
+    });
+  }
+};
+
+module.exports = { createSociety, getMySocieties, getSocietyDetails, addMember, updateMemberRole };
