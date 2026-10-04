@@ -59,10 +59,12 @@ const membershipSchema = new mongoose.Schema({
     // added by member
     addedBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        select: false
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    versionKey: false 
 });
 
 // indexes 

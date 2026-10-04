@@ -107,20 +107,11 @@ const getMySocieties = async (req, res) => {
     }).populate('society', 'name societyId address logo configuration');
     
 
-    // If user has no societies yet, that's not an error — just empty list
+    // If user has no societies yet, it's not an error — just an empty list
     res.status(200).json({
       success: true,
       count: memberships.length,
-      societies: memberships.map(m => ({
-        membershipId: m._id,
-        society: m.society,        // full society object (name, societyId, address, etc.)
-        role: m.role,
-        flatNo: m.fullFlatNo,
-        wing: m.wing,
-        floor: m.floor,
-        status: m.status,
-        joinedDate: m.joinedDate
-      }))
+      memberships
     });
 
   } catch (error) {
@@ -131,5 +122,64 @@ const getMySocieties = async (req, res) => {
     });
   }
 };
+const getSocietyDetails = async (req, res) => {
+  try {
+    const { societyId } = req.params;
 
-module.exports = { createSociety, getMySocieties };
+    const myMembership = await Membership.findOne({
+      user: req.user._id,
+      society: societyId,
+      status: 'ACTIVE'
+    });
+
+    if (!myMembership) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not a member of this society'
+      });
+    }
+
+    const society = await Society.findById(societyId);
+    if (!society) {
+      return res.status(404).json({
+        success: false,
+        message: 'Society not found'
+      });
+    }
+
+    let members;
+
+    if (myMembership.role === 'CHAIRMAN') {
+      members = await Membership.find({
+        society: societyId,
+        status: 'ACTIVE'
+      })
+      .select('+addedBy')
+      .populate('user', 'name email phone userId avatar')
+      .populate('addedBy', 'name userId');
+    } else {
+      members = await Membership.find({
+        society: societyId,
+        status: 'ACTIVE'
+      })
+      .populate('user', 'name email phone userId avatar');
+    }
+
+    res.status(200).json({
+      success: true,
+      society,
+      myRole: myMembership.role,
+      myFlat: myMembership.fullFlatNo,
+      members
+    });
+
+  } catch (error) {
+    console.error('Get Society Details Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching society details'
+    });
+  }
+};
+
+module.exports = { createSociety, getMySocieties, getSocietyDetails };
