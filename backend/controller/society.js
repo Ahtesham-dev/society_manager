@@ -1,6 +1,7 @@
 const Society = require('../models/society');
 const Membership = require('../models/membership');
 const { generateSocietyId } = require('../utils/generateId');
+const User = require('../models/user');
 
 // Flow: Validate → Create Society → Auto-assign Creator as CHAIRMAN
 
@@ -182,4 +183,88 @@ const getSocietyDetails = async (req, res) => {
   }
 };
 
-module.exports = { createSociety, getMySocieties, getSocietyDetails };
+const addMember = async (req, res) => {
+  try {
+    // societyId is already verified by 'authorize' middleware before this runs
+    const { societyId } = req.params;
+    const { userId, wing, floor, flatNo, role } = req.body;
+
+    //Validating required fields
+    if (!userId || !wing || floor === undefined || !flatNo) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide userId, wing, floor and flatNo'
+      });
+    }
+
+    //Finding the target user using their custom userId (e.g. "U00001")
+    const targetUser = await User.findOne({ userId: userId });
+
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'No user found with this userId'
+      });
+    }
+
+    //Checking if this user is already a member of this society
+    const existingMembership = await Membership.findOne({
+      user: targetUser._id,
+      society: societyId
+    });
+
+    if (existingMembership) {
+      return res.status(400).json({
+        success: false,
+        message: 'This user is already a member of this society'
+      });
+    }
+
+    //Chairman can only assign  roles  which is not taken or  CHAIRMAN)
+    const allowedRoles = ['MEMBER', 'SECRETARY', 'TREASURER'];
+    const finalRole = role || 'MEMBER';
+
+    if (!allowedRoles.includes(finalRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Role must be MEMBER, SECRETARY or TREASURER'
+      });
+    }
+
+    const fullFlatNo = `${wing.toUpperCase()}-${flatNo}`;
+
+    //Creating the membership
+    const membership = await Membership.create({
+      user: targetUser._id,
+      society: societyId,
+      wing: wing.toUpperCase(),
+      floor,
+      flatNo,
+      fullFlatNo,
+      role: finalRole,
+      status: 'ACTIVE',
+      addedBy: req.user._id    
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `${targetUser.name} added to society successfully`,
+      membership
+    });
+
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'This user is already a member of this society'
+      });
+    }
+    console.error('Add Member Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding member'
+    });
+  }
+};
+
+module.exports = { createSociety, getMySocieties, getSocietyDetails , addMember };
