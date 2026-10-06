@@ -365,4 +365,57 @@ const updateMemberRole = async (req, res) => {
   }
 };
 
-module.exports = { createSociety, getMySocieties, getSocietyDetails, addMember, updateMemberRole };
+const updateMemberFlat = async (req, res) => {
+  try {
+    const { societyId, membershipId } = req.params;
+    const { wing, floor, flatNo } = req.body;
+
+    //Validating required fields
+    if (!wing || floor === undefined || !flatNo) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide wing, floor and flatNo'
+      });
+    }
+
+    //Finding the membership of this society only
+    const membership = await Membership.findOne({
+      _id: membershipId,
+      society: societyId
+    });
+
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        message: 'Membership not found in this society'
+      });
+    }
+
+    //updating the flat fields
+    const fullFlatNo = `${wing.toUpperCase()}-${flatNo}`;
+
+    const oldFlatNo = membership.fullFlatNo;
+
+    membership.wing = wing.toUpperCase();
+    membership.floor = floor;
+    membership.flatNo = flatNo;
+    membership.fullFlatNo = fullFlatNo;
+
+    await membership.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Flat updated from ${oldFlatNo} to ${fullFlatNo}`,
+      membership
+    });
+
+  } catch (error) {
+    console.error('Update Member Flat Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating flat'
+    });
+  }
+};
+
+module.exports = { createSociety, getMySocieties, getSocietyDetails, addMember, updateMemberRole, updateMemberFlat };
