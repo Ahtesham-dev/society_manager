@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createSociety, getMySocieties, getSocietyDetails , addMember ,updateMemberRole , updateMemberFlat , removeMember} = require('../controller/society');
-const { protect } = require('../middleware/auth');
+const { protect , authorize } = require('../middleware/auth');
 
 router.post('/', protect, createSociety);
 router.get('/my', protect, getMySocieties); //Get all societies the logged-in user belongs to
