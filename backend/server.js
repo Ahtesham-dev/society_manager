@@ -52,5 +52,4 @@ app.get('/api/test', (req, res) => {
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/societies', require('./routes/society'));
-app.use('/api/members', require('./routes/membership'));
 

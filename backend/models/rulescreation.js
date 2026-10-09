@@ -53,6 +53,6 @@ const rulecreationSchema = new mongoose.Schema({
 });
 
 // Index for fast lookup of rules per society
-ruleSchema.index({ society: 1, category: 1 });
+rulecreationSchema.index({ society: 1, category: 1 });
 
-module.exports = mongoose.model('Rule', ruleSchema);
+module.exports = mongoose.model('Rule', rulecreationSchema);

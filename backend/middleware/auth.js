@@ -131,4 +131,45 @@ const authorize = (...roles) => {
     };
 };
 
-module.exports = { protect, authorize };
+const requireSocietyMember = async (req, res, next) => {
+  try {
+    const societyId =
+      req.params.societyId ||
+      req.body.societyId ||
+      req.query.societyId;
+
+    if (!societyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Society ID required'
+      });
+    }
+
+    const membership = await Membership.findOne({
+      user: req.user._id,
+      society: societyId,
+      status: 'ACTIVE'
+    });
+
+    if (!membership) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not a member of this society'
+      });
+    }
+    // attach for controllers if needed
+    req.membership = membership;
+    req.societyId = societyId;
+
+    next();
+    
+  } catch (error) {
+    console.error('RequireSocietyMember Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Membership check failed'
+    });
+  }
+};
+
+module.exports = { protect, authorize, requireSocietyMember };
