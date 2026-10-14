@@ -15,9 +15,15 @@ const generateSocietyId = async () => {
 };
 
 const generateRulecreationId = async () => {
-  const count = await Rule.countDocuments();
+  const count = await rulecreation.countDocuments();
   const number = String(count + 1).padStart(3, '0');
   return `R${number}`;
 };
 
-module.exports = { generateUserId, generateSocietyId , generateRulecreationId };
+const generateComplaintId = async () => {
+  const count = await Complaint.countDocuments();
+  const number = String(count + 1).padStart(5, '0');
+  return `C${number}`;
+};
+
+module.exports = { generateUserId, generateSocietyId , generateRulecreationId, generateComplaintId };
