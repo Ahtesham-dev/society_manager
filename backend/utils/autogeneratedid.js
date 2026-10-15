@@ -26,4 +26,9 @@ const generateComplaintId = async () => {
   return `C${number}`;
 };
 
-module.exports = { generateUserId, generateSocietyId , generateRulecreationId, generateComplaintId };
+const generateFineId = async () => {
+  const count = await Fine.countDocuments();
+  return `F${String(count + 1).padStart(5, '0')}`;
+};
+
+module.exports = { generateUserId, generateSocietyId , generateRulecreationId, generateComplaintId, generateFineId };

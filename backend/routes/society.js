@@ -5,6 +5,8 @@ const { protect , authorize } = require('../middleware/auth');
 const ruleRoutes = require('./rules'); //points to the rule routes file
 const announcementRoutes = require('./announcement');
 const complaintRoutes = require('./complaint');
+const fineRoutes = require('./fine');
+
 
 router.post('/', protect, createSociety);
 router.get('/my', protect, getMySocieties); // Get all societies the logged-in user belongs to
@@ -17,6 +19,7 @@ router.delete('/:societyId/members/:membershipId', protect, authorize('CHAIRMAN'
 router.use('/:societyId/rules', ruleRoutes);
 router.use('/:societyId/announcements', announcementRoutes);
 router.use('/:societyId/complaints', complaintRoutes);
+router.use('/:societyId/fines', fineRoutes);
 
 module.exports = router;
 
