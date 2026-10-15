@@ -9,7 +9,7 @@ const submitComplaint = async (req, res) => {
     const { societyId } = req.params;
     const { reportedFlat, reportedUser, ruleId, description, evidence } = req.body;
 
-    // STEP 1: Validate required fields
+    // Validate required fields
     if (!reportedFlat || !ruleId || !description) {
       return res.status(400).json({
         success: false,
@@ -17,7 +17,7 @@ const submitComplaint = async (req, res) => {
       });
     }
 
-    // STEP 2: Confirm the rule actually exists in this society
+    // check if the rule actually exists in this society
     const rule = await Rule.findOne({ _id: ruleId, society: societyId });
     if (!rule) {
       return res.status(404).json({
@@ -26,10 +26,10 @@ const submitComplaint = async (req, res) => {
       });
     }
 
-    // STEP 3: Generate unique complaint ID
+    // Generating unique complaint ID
     const complaintId = await generateComplaintId();
 
-    // STEP 4: Create the complaint
+    //Creating the complaint
     const complaint = await Complaint.create({
       society: societyId,
       complainant: req.user._id,        // who is filing — stored but hidden by default
@@ -57,4 +57,113 @@ const submitComplaint = async (req, res) => {
   }
 };
 
-module.exports = { submitComplaint };
+// Flow: Check membership → Determine role → Fetch complaints → Hide/show complainant accordingly
+
+const getComplaints = async (req, res) => {
+  try {
+    const { societyId } = req.params;
+
+    // req.membership was already attached by 'requireSocietyMember' middleware
+    const myRole = req.membership.role;
+    const isPrivileged = (myRole === 'CHAIRMAN' || myRole === 'SECRETARY');
+
+    let complaints;
+
+    if (isPrivileged) {
+      // Chairman/Secretary can see WHO filed each complaint
+      complaints = await Complaint.find({ society: societyId })
+        .select('+complainant')
+        .populate('complainant', 'name userId')
+        .populate('reportedUser', 'name userId')
+        .populate('rule', 'ruleId title category')
+        .sort({ createdAt: -1 });
+    } else {
+      // Regular members/accused residents do NOT see complainant
+      complaints = await Complaint.find({ society: societyId })
+        .populate('reportedUser', 'name userId')
+        .populate('rule', 'ruleId title category')
+        .sort({ createdAt: -1 });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: complaints.length,
+      complaints
+    });
+
+  } catch (error) {
+    console.error('Get Complaints Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching complaints'
+    });
+  }
+};
+
+// Flow: Check role (via authorize) → Find complaint → Validate status → Update → Save
+
+const updateComplaintStatus = async (req, res) => {
+  try {
+    const { societyId, complaintId } = req.params;
+    const { status, reviewNotes } = req.body;
+
+    // Validate status 
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a status'
+      });
+    }
+
+    // Validate it's a recognized status value
+    const allowedStatuses = [
+      'SUBMITTED', 'UNDER_REVIEW', 'EVIDENCE_REQUESTED', 
+      'CONFIRMED', 'REJECTED', 'ACTION_TAKEN', 'RESOLVED'
+    ];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Status must be one of: ${allowedStatuses.join(', ')}`
+      });
+    }
+
+    // Find the complaint (locked to this society)
+    const complaint = await Complaint.findOne({
+      _id: complaintId,
+      society: societyId
+    });
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: 'Complaint not found in this society'
+      });
+    }
+
+    //Updating fields
+    const oldStatus = complaint.status;
+    complaint.status = status;
+    complaint.reviewedBy = req.user._id;
+
+    if (reviewNotes) {
+      complaint.reviewNotes = reviewNotes.trim();
+    }
+
+    await complaint.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Complaint status updated from ${oldStatus} to ${status}`,
+      complaint
+    });
+
+  } catch (error) {
+    console.error('Update Complaint Status Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating complaint status'
+    });
+  }
+};
+
+module.exports = { submitComplaint, getComplaints, updateComplaintStatus };
