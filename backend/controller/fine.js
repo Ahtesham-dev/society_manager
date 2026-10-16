@@ -131,4 +131,126 @@ const getAllFines = async (req, res) => {
   }
 };
 
-module.exports = { createFine, getAllFines };
+// Flow: Find fine → Check ownership → Check status → Update → Save
+const submitPayment = async (req, res) => {
+  try {
+    const { societyId, fineId } = req.params;
+    const { paymentProof } = req.body;
+
+    //Validate payment proof was provided
+    if (!paymentProof) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide payment proof (receipt/screenshot URL)'
+      });
+    }
+
+    //Find the fine (of this society only )
+    const fine = await Fine.findOne({
+      _id: fineId,
+      society: societyId
+    });
+
+    if (!fine) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fine not found in this society'
+      });
+    }
+
+    //Ownership check - only the resident who owes this fine can pay it
+    if (fine.resident.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only submit payment for your own fines'
+      });
+    }
+
+    //Checking if current status allows payment submission
+    if (fine.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot submit payment. Fine status is currently ${fine.status}`
+      });
+    }
+
+    //Update fine
+    fine.paymentProof = paymentProof;
+    fine.status = 'PAYMENT_SUBMITTED';
+    await fine.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment submitted. Waiting for Treasurer verification.',
+      fine
+    });
+
+  } catch (error) {
+    console.error('Submit Payment Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while submitting payment'
+    });
+  }
+};
+
+const verifyPayment = async (req, res) => {
+  try {
+    const { societyId, fineId } = req.params;
+    const { action } = req.body;
+
+    if (!action || (action !== 'APPROVE' && action !== 'REJECT')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide action as APPROVE or REJECT'
+      });
+    }
+
+    const fine = await Fine.findOne({
+      _id: fineId,
+      society: societyId
+    });
+
+    if (!fine) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fine not found in this society'
+      });
+    }
+
+    if (fine.status !== 'PENDING' && fine.status !== 'REJECTED') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot submit payment. Fine status is currently ${fine.status}`
+      });
+    }
+
+
+    if (action === 'APPROVE') {
+      fine.status = 'PAID';
+      fine.paidDate = Date.now();
+    } else {
+      fine.status = 'REJECTED';
+    }
+
+    fine.verifiedBy = req.user._id;
+    await fine.save();
+
+    res.status(200).json({
+      success: true,
+      message: action === 'APPROVE'
+        ? 'Payment approved. Fine marked as PAID.'
+        : 'Payment rejected. Resident can resubmit proof.',
+      fine
+    });
+
+  } catch (error) {
+    console.error('Verify Payment Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while verifying payment'
+    });
+  }
+};
+
+module.exports = { createFine, getAllFines, submitPayment, verifyPayment };
