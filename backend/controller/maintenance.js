@@ -81,4 +81,161 @@ const createMonthlyDue = async (req, res) => {
   }
 };
 
-module.exports = { createMonthlyDue };
+const getMaintenanceHistory = async (req, res) => {
+  try {
+    const { societyId } = req.params;
+    const { month } = req.query;
+
+    // req.membership was set earlier by the requireSocietyMember middleware.
+    // It tells us this specific user's role in THIS specific society.
+    const role = req.membership.role;
+
+    // Starting with a base filter: only dues belonging to this society.
+    const filter = { society: societyId };
+
+    if (role !== 'TREASURER' && role !== 'CHAIRMAN') {
+      filter.resident = req.user._id;
+    }
+
+    // Optional convenience: ?month=2024-03 narrows results further,
+    if (month) {
+      filter.month = month;
+    }
+
+    const dues = await Maintenance.find(filter)
+      .populate('resident', 'name userId')
+      .populate('createdBy', 'name userId')
+      .populate('verifiedBy', 'name userId')
+      .sort({ month: -1, createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: dues.length,
+      dues
+    });
+
+  } catch (error) {
+    console.error('Get Maintenance History Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching maintenance history'
+    });
+  }
+};
+
+const submitMaintenancePayment = async (req, res) => {
+  try {
+    const { societyId, maintenanceId } = req.params;
+    const { paymentProof } = req.body;
+
+    if (!paymentProof) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide payment proof (receipt/screenshot URL)'
+      });
+    }
+
+    const due = await Maintenance.findOne({
+      _id: maintenanceId,
+      society: societyId
+    });
+
+    if (!due) {
+      return res.status(404).json({
+        success: false,
+        message: 'Maintenance due not found in this society'
+      });
+    }
+
+    if (due.resident.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only submit payment for your own maintenance due'
+      });
+    }
+
+    if (due.status !== 'PENDING' && due.status !== 'REJECTED') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot submit payment. Due status is currently ${due.status}`
+      });
+    }
+
+    due.paymentProof = paymentProof;
+    due.status = 'PAYMENT_SUBMITTED';
+    await due.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment submitted. Waiting for Treasurer verification.',
+      due
+    });
+
+  } catch (error) {
+    console.error('Submit Maintenance Payment Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while submitting payment'
+    });
+  }
+};
+
+const verifyMaintenancePayment = async (req, res) => {
+  try {
+    const { societyId, maintenanceId } = req.params;
+    const { action } = req.body;
+
+    if (!action || (action !== 'APPROVE' && action !== 'REJECT')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide action as APPROVE or REJECT'
+      });
+    }
+
+    const due = await Maintenance.findOne({
+      _id: maintenanceId,
+      society: societyId
+    });
+
+    if (!due) {
+      return res.status(404).json({
+        success: false,
+        message: 'Maintenance due not found in this society'
+      });
+    }
+
+    if (due.status !== 'PAYMENT_SUBMITTED') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot verify. Due status is currently ${due.status}`
+      });
+    }
+
+    if (action === 'APPROVE') {
+      due.status = 'PAID';
+      due.paidDate = Date.now();
+    } else {
+      due.status = 'REJECTED';
+    }
+
+    due.verifiedBy = req.user._id;
+    await due.save();
+
+    res.status(200).json({
+      success: true,
+      message: action === 'APPROVE'
+        ? 'Payment approved. Due marked as PAID.'
+        : 'Payment rejected. Resident can resubmit proof.',
+      due
+    });
+
+  } catch (error) {
+    console.error('Verify Maintenance Payment Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while verifying payment'
+    });
+  }
+};
+
+module.exports = { createMonthlyDue, getMaintenanceHistory , submitMaintenancePayment, verifyMaintenancePayment };
