@@ -24,6 +24,9 @@ router.use('/:societyId/fines', fineRoutes);
 const maintenanceRoutes = require('./maintenance');
 router.use('/:societyId/maintenance', maintenanceRoutes);
 
+const financeRoutes = require('./finance');
+router.use('/:societyId/finance', financeRoutes);
+
 module.exports = router;
 
 // POST /api/societies  → Create a new society
