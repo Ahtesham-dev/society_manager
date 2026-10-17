@@ -21,6 +21,9 @@ router.use('/:societyId/announcements', announcementRoutes);
 router.use('/:societyId/complaints', complaintRoutes);
 router.use('/:societyId/fines', fineRoutes);
 
+const maintenanceRoutes = require('./maintenance');
+router.use('/:societyId/maintenance', maintenanceRoutes);
+
 module.exports = router;
 
 // POST /api/societies  → Create a new society

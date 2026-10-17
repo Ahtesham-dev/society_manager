@@ -31,4 +31,9 @@ const generateFineId = async () => {
   return `F${String(count + 1).padStart(5, '0')}`;
 };
 
-module.exports = { generateUserId, generateSocietyId , generateRulecreationId, generateComplaintId, generateFineId };
+const generateMaintenanceId = async () => {
+  const count = await Maintenance.countDocuments();
+  return `M${String(count + 1).padStart(5, '0')}`;
+};
+
+module.exports = { generateUserId, generateSocietyId , generateRulecreationId, generateComplaintId, generateFineId, generateMaintenanceId };
