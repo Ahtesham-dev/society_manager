@@ -55,4 +55,43 @@ const createFinanceRecord = async (req, res) => {
   }
 };
 
-module.exports = { createFinanceRecord };
+const getFinanceDashboard = async (req, res) => {
+  try {
+    const { societyId } = req.params;
+
+    const records = await Finance.find({ society: societyId })
+      .populate('recordedBy', 'name userId')
+      .sort({ date: -1 });
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    for (const record of records) {
+      if (record.type === 'INCOME') {
+        totalIncome += record.amount;
+      } else {
+        totalExpense += record.amount;
+      }
+    }
+
+    const balance = totalIncome - totalExpense;
+
+    res.status(200).json({
+      success: true,
+      totalIncome,
+      totalExpense,
+      balance,
+      recordCount: records.length,
+      records
+    });
+
+  } catch (error) {
+    console.error('Get Finance Dashboard Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching finance dashboard'
+    });
+  }
+};
+
+module.exports = { createFinanceRecord, getFinanceDashboard };
