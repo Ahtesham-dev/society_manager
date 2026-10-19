@@ -106,4 +106,62 @@ const updatePlanStatus = async (req, res) => {
   }
 };
 
-module.exports = { createPlan, getPlans, updatePlanStatus };
+// Flow: Validate voteType → Find plan → Check if user already voted → Add/Toggle-off/Update vote → Save
+const castVote = async (req, res) => {
+  try {
+    const { societyId, planId } = req.params;
+    const { voteType } = req.body;
+
+    if (!voteType || (voteType !== 'LIKE' && voteType !== 'DISLIKE')) {
+      return res.status(400).json({
+        success: false,
+        message: 'voteType must be LIKE or DISLIKE'
+      });
+    }
+
+    const plan = await FuturePlan.findOne({
+      _id: planId,
+      society: societyId
+    });
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Future plan not found in this society'
+      });
+    }
+
+    const existingVote = plan.votes.find(
+      (vote) => vote.user.toString() === req.user._id.toString()
+    );
+
+    if (!existingVote) {
+      plan.votes.push({ user: req.user._id, voteType });
+    } else if (existingVote.voteType === voteType) {
+      plan.votes = plan.votes.filter(
+        (vote) => vote.user.toString() !== req.user._id.toString()
+      );
+    } else {
+      existingVote.voteType = voteType;
+    }
+
+    await plan.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Vote recorded',
+      likeCount: plan.likeCount,
+      dislikeCount: plan.dislikeCount,
+      plan
+    });
+
+  } catch (error) {
+    console.error('Cast Vote Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while casting vote'
+    });
+  }
+};
+
+module.exports = { createPlan, getPlans, updatePlanStatus, castVote };
