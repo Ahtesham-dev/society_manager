@@ -30,6 +30,10 @@ router.use('/:societyId/finance', financeRoutes);
 const feedbackRoutes = require('./feedback');
 router.use('/:societyId/feedback', feedbackRoutes);
 
+const futurePlanRoutes = require('./futureplan');
+router.use('/:societyId/future-plans', futurePlanRoutes);
+
+
 module.exports = router;
 
 // POST /api/societies  → Create a new society

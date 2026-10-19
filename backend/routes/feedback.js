@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-const { submitFeedback , getAllFeedback , respondToFeedback } = require('../controller/feedback');
-const { protect, requireSocietyMember } = require('../middleware/auth');
+const { submitFeedback , getAllFeedback , respondToFeedback , getMyFeedback } = require('../controller/feedback');
+const { protect, requireSocietyMember ,authorize } = require('../middleware/auth');
 
 //POST /api/societies/:societyId/feedback
 router.post('/', protect, requireSocietyMember, submitFeedback);
