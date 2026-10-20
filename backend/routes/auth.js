@@ -14,7 +14,10 @@ const { register, login, getMe, logout } = require('../controller/auth');
 const { protect } = require('../middleware/auth');
 
 router.post('/register', register);
-router.post('/login',  loginLimiter, login);
+
+//POST /api/auth/login
+//Authenticate user, extra rate limit to block brute-force password guessing
+router.post('/login', loginLimiter, login);
 
 // Header: Authorization: Bearer <token>
 router.get('/me', protect, getMe);
