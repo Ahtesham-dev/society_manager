@@ -66,6 +66,7 @@ app.get('/api/test', (req, res) => {
 
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/societies', require('./routes/society'));
 app.use(errorHandler);
 
