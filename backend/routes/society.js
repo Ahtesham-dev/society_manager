@@ -33,6 +33,7 @@ router.use('/:societyId/feedback', feedbackRoutes);
 const futurePlanRoutes = require('./futureplan');
 router.use('/:societyId/future-plans', futurePlanRoutes);
 
+app.use('/api/notifications', require('./routes/notification'));
 
 module.exports = router;
 

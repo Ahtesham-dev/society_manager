@@ -1,4 +1,5 @@
 const Feedback = require('../models/feedback');
+const { createNotification } = require('../utils/notify');
 
 const submitFeedback = async (req, res) => {
   try {
@@ -114,6 +115,14 @@ const respondToFeedback = async (req, res) => {
     feedback.respondedAt = Date.now();
 
     await feedback.save();
+
+    await createNotification({
+      society: societyId,
+      recipient: feedback.submittedBy,
+      message: `Your feedback "${feedback.title}" was updated to ${status}`,
+     type: 'FEEDBACK',
+     link: `/feedback/${feedback._id}`
+    });
 
     res.status(200).json({
       success: true,

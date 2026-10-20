@@ -1,4 +1,6 @@
 const Announcement = require('../models/announcement');
+const { createNotification } = require('../utils/notify');
+const Membership = require('../models/membership');
 
 // Flow: Validate → Create Announcement (role already checked by authorize middleware)
 
@@ -20,6 +22,21 @@ const createAnnouncement = async (req, res) => {
       content: content.trim(),
       createdBy: req.user._id
     });
+
+    const activeMembers = await Membership.find({
+    society: societyId,
+    status: 'ACTIVE'
+    });
+
+   for (const member of activeMembers) {
+     await createNotification({
+     society: societyId,
+     recipient: member.user,
+     message: `New announcement: ${title}`,
+     type: 'ANNOUNCEMENT',
+     link: `/announcements/${announcement._id}`
+    });
+}
 
     res.status(201).json({
       success: true,
