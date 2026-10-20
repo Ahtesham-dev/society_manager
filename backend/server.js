@@ -4,11 +4,34 @@ const mongoose = require('mongoose');
 const cors = require('cors');             
 const dotenv = require('dotenv');         
 const path = require('path');
-
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const errorHandler = require('./middleware/errorHandler');
 
 dotenv.config();
 
-const app = express();  
+const app = express();
+
+app.use(helmet());
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+app.use(mongoSanitize());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: {
+    success: false,
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+  }
+});
+
+app.use('/api/', limiter);
 
 app.use(express.json());
 
@@ -52,4 +75,5 @@ app.get('/api/test', (req, res) => {
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/societies', require('./routes/society'));
+app.use(errorHandler);
 

@@ -1,8 +1,8 @@
 const FuturePlan = require('../models/futureplan');
+const asyncHandler = require('../utils/asyncHandler');
 
 // Flow: Validate title/description → Create plan → Attach createdBy → Save
-const createPlan = async (req, res) => {
-  try {
+const createPlan = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
     const { title, description, estimatedCost, targetDate } = req.body;
 
@@ -28,18 +28,10 @@ const createPlan = async (req, res) => {
       plan
     });
 
-  } catch (error) {
-    console.error('Create Plan Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating future plan'
-    });
-  }
-};
+});
 
 // Flow: Find plans by society → Populate createdBy → Sort newest first → Return list
-const getPlans = async (req, res) => {
-  try {
+const getPlans = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
 
     const plans = await FuturePlan.find({ society: societyId })
@@ -52,18 +44,10 @@ const getPlans = async (req, res) => {
       plans
     });
 
-  } catch (error) {
-    console.error('Get Plans Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching future plans'
-    });
-  }
-};
+});
 
 // Flow: Validate status → Find plan in society → Update status → Save
-const updatePlanStatus = async (req, res) => {
-  try {
+const updatePlanStatus = asyncHandler(async (req, res) => {
     const { societyId, planId } = req.params;
     const { status } = req.body;
 
@@ -97,18 +81,10 @@ const updatePlanStatus = async (req, res) => {
       plan
     });
 
-  } catch (error) {
-    console.error('Update Plan Status Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating plan status'
-    });
-  }
-};
+});
 
 // Flow: Validate voteType → Find plan → Check if user already voted → Add/Toggle-off/Update vote → Save
-const castVote = async (req, res) => {
-  try {
+const castVote = asyncHandler(async (req, res) => {
     const { societyId, planId } = req.params;
     const { voteType } = req.body;
 
@@ -155,13 +131,6 @@ const castVote = async (req, res) => {
       plan
     });
 
-  } catch (error) {
-    console.error('Cast Vote Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while casting vote'
-    });
-  }
-};
+});
 
 module.exports = { createPlan, getPlans, updatePlanStatus, castVote };

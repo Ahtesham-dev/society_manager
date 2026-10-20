@@ -1,8 +1,8 @@
 const AuditLog = require('../models/auditlog');
+const asyncHandler = require('../utils/asyncHandler');
 
 // Flow: Find logs for this society → Populate performer name → Sort newest first → Return list
-const getAuditLogs = async (req, res) => {
-  try {
+const getAuditLogs = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
 
     const logs = await AuditLog.find({ society: societyId })
@@ -15,13 +15,6 @@ const getAuditLogs = async (req, res) => {
       logs
     });
 
-  } catch (error) {
-    console.error('Get Audit Logs Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching audit logs'
-    });
-  }
-};
+});
 
 module.exports = { getAuditLogs };

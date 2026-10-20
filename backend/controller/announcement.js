@@ -1,11 +1,11 @@
 const Announcement = require('../models/announcement');
 const { createNotification } = require('../utils/notify');
 const Membership = require('../models/membership');
+const asyncHandler = require('../utils/asyncHandler');
 
 // Flow: Validate → Create Announcement (role already checked by authorize middleware)
 
-const createAnnouncement = async (req, res) => {
-  try {
+const createAnnouncement = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
     const { title, content } = req.body;
 
@@ -44,19 +44,11 @@ const createAnnouncement = async (req, res) => {
       announcement
     });
 
-  } catch (error) {
-    console.error('Create Announcement Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while creating announcement'
-    });
-  }
-};
+});
 
 // Flow: Check membership (via middleware) → Fetch all announcements → Return
 
-const getAnnouncements = async (req, res) => {
-  try {
+const getAnnouncements = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
 
     const announcements = await Announcement.find({
@@ -72,13 +64,6 @@ const getAnnouncements = async (req, res) => {
       announcements
     });
 
-  } catch (error) {
-    console.error('Get Announcements Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching announcements'
-    });
-  }
-};
+});
 
 module.exports = { createAnnouncement, getAnnouncements };

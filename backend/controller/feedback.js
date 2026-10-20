@@ -1,8 +1,8 @@
 const Feedback = require('../models/feedback');
 const { createNotification } = require('../utils/notify');
+const asyncHandler = require('../utils/asyncHandler');
 
-const submitFeedback = async (req, res) => {
-  try {
+const submitFeedback = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
     const { category, title, message } = req.body;
 
@@ -41,17 +41,9 @@ const submitFeedback = async (req, res) => {
       feedback
     });
 
-  } catch (error) {
-    console.error('Submit Feedback Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while submitting feedback'
-    });
-  }
-};
+});
 
-const getAllFeedback = async (req, res) => {
-  try {
+const getAllFeedback = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
     const { status } = req.query;
 
@@ -72,17 +64,9 @@ const getAllFeedback = async (req, res) => {
       feedback: feedbackList
     });
 
-  } catch (error) {
-    console.error('Get All Feedback Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching feedback'
-    });
-  }
-};
+});
 
-const respondToFeedback = async (req, res) => {
-  try {
+const respondToFeedback = asyncHandler(async (req, res) => {
     const { societyId, feedbackId } = req.params;
     const { response, status } = req.body;
 
@@ -130,17 +114,9 @@ const respondToFeedback = async (req, res) => {
       feedback
     });
 
-  } catch (error) {
-    console.error('Respond To Feedback Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while responding to feedback'
-    });
-  }
-};
+});
 
-const getMyFeedback = async (req, res) => {
-  try {
+const getMyFeedback = asyncHandler(async (req, res) => {
     const { societyId } = req.params;
 
     const feedbackList = await Feedback.find({
@@ -157,13 +133,6 @@ const getMyFeedback = async (req, res) => {
       feedback: feedbackList
     });
 
-  } catch (error) {
-    console.error('Get My Feedback Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching your feedback'
-    });
-  }
-};
+});
 
 module.exports = { submitFeedback, getAllFeedback, respondToFeedback, getMyFeedback };

@@ -1,8 +1,8 @@
 const Notification = require('../models/notification');
+const asyncHandler = require('../utils/asyncHandler');
 
 // Flow: Find notifications for logged-in user → Sort newest first → Return list with unread count
-const getMyNotifications = async (req, res) => {
-  try {
+const getMyNotifications = asyncHandler(async (req, res) => {
     const notifications = await Notification.find({ recipient: req.user._id })
       .sort({ createdAt: -1 });
 
@@ -13,18 +13,10 @@ const getMyNotifications = async (req, res) => {
       notifications
     });
 
-  } catch (error) {
-    console.error('Get My Notifications Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching notifications'
-    });
-  }
-};
+});
 
 // Flow: Find notification owned by this user → Mark isRead true → Save
-const markAsRead = async (req, res) => {
-  try {
+const markAsRead = asyncHandler(async (req, res) => {
     const { notificationId } = req.params;
 
     const notification = await Notification.findOne({
@@ -48,13 +40,6 @@ const markAsRead = async (req, res) => {
       notification
     });
 
-  } catch (error) {
-    console.error('Mark As Read Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while updating notification'
-    });
-  }
-};
+});
 
 module.exports = { getMyNotifications, markAsRead };
