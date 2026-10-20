@@ -160,6 +160,15 @@ const updateComplaintStatus = async (req, res) => {
       link: `/complaints/${complaint._id}`
     });
 
+    await createAuditLog({
+      society: societyId,
+      performedBy: req.user._id,
+      action: 'UPDATE_COMPLAINT_STATUS',
+      targetType: 'Complaint',
+      targetId: complaint._id,
+      details: `Changed complaint status to ${status}`
+    });
+
     res.status(200).json({
       success: true,
       message: `Complaint status updated from ${oldStatus} to ${status}`,

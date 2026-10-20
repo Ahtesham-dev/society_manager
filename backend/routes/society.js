@@ -35,6 +35,9 @@ router.use('/:societyId/future-plans', futurePlanRoutes);
 
 app.use('/api/notifications', require('./routes/notification'));
 
+const auditLogRoutes = require('./auditlog');
+router.use('/:societyId/audit-logs', auditLogRoutes);
+
 module.exports = router;
 
 // POST /api/societies  → Create a new society
