@@ -72,6 +72,13 @@ const updatePlanStatus = asyncHandler(async (req, res) => {
       });
     }
 
+    if (plan.status === status) {
+      return res.status(400).json({
+        success: false,
+        message: `Future plan status is already set to ${status}`
+      });
+    }
+
     plan.status = status;
     await plan.save();
 

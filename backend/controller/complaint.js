@@ -127,6 +127,12 @@ const updateComplaintStatus = asyncHandler(async (req, res) => {
 
     //Updating fields
     const oldStatus = complaint.status;
+    if (oldStatus === status) {
+      return res.status(400).json({
+        success: false,
+        message: `Complaint status is already set to ${status}`
+      });
+    }
     complaint.status = status;
     complaint.reviewedBy = req.user._id;
 

@@ -90,6 +90,12 @@ const respondToFeedback = asyncHandler(async (req, res) => {
         message: 'Feedback not found in this society'
       });
     }
+     if (feedback.status === status && (!response || feedback.response === response)) {
+      return res.status(400).json({
+        success: false,
+        message: `Feedback status is already set to ${status}`
+      });
+    }
 
     feedback.status = status;
     if (response) {

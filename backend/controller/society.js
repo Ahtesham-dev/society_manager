@@ -275,11 +275,18 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     }
 
     //Block changing a CHAIRMAN's role through this simple route
-    if (membership.role === 'CHAIRMAN') {
+    if (membership.role === 'CHAIRMAN' ) {
       return res.status(400).json({
         success: false,
         message: 'Cannot change Chairman role here. Use chairman transfer process.'
       });
+    }
+    // Block if the new role is the same as the current role
+    if (role === membership.role) {
+      return res.status(400).json({
+      success: false,
+      message: `This member already has the role ${role}`
+     });
     }
 
     //If assigning SECRETARY/TREASURER, check it's not already taken
@@ -344,6 +351,18 @@ const updateMemberFlat = asyncHandler(async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Membership not found in this society'
+      });
+    }
+
+     // Block if nothing is actually changing
+    if (
+      membership.wing === wing.toUpperCase() &&
+      membership.floor === floor &&
+      membership.flatNo === flatNo
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `This member is already assigned to flat ${fullFlatNo}`
       });
     }
 
