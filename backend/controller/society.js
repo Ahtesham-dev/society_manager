@@ -50,6 +50,7 @@ const createSociety = asyncHandler(async (req, res) => {
     // STEP 6: Build the full flat number e.g. "A-101"
     const fullFlatNo = `${wing.toUpperCase()}-${flatNo}`;
 
+
     // STEP 7: Auto-create Membership — creator becomes CHAIRMAN
     const membership = await Membership.create({
       user: req.user._id,
@@ -182,7 +183,7 @@ const addMember = asyncHandler(async (req, res) => {
       society: societyId
     });
 
-    if (existingMembership) {
+    if (existingMembership && existingMembership.status === 'ACTIVE') {
       return res.status(400).json({
         success: false,
         message: 'This user is already a member of this society'
@@ -217,6 +218,26 @@ const addMember = asyncHandler(async (req, res) => {
     }
 
     const fullFlatNo = `${wing.toUpperCase()}-${flatNo}`;
+
+    // If an INACTIVE membership exists, reactivate it instead of creating a duplicate
+    if (existingMembership) {
+      existingMembership.status = 'ACTIVE';
+      existingMembership.role = finalRole;
+      existingMembership.wing = wing.toUpperCase();
+      existingMembership.floor = floor;
+      existingMembership.flatNo = flatNo;
+      existingMembership.fullFlatNo = fullFlatNo;
+      existingMembership.addedBy = req.user._id;
+      existingMembership.joinedDate = Date.now();
+
+      await existingMembership.save();
+
+      return res.status(200).json({
+        success: true,
+        message: `${targetUser.name} re-added to society successfully`,
+        membership: existingMembership
+      });
+    }
 
     //Creating the membership
     const membership = await Membership.create({
