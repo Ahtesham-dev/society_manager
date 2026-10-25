@@ -20,12 +20,27 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(mongoSanitize());
-
 const { generalLimiter } = require('./middleware/rateLimiter');
 app.use('/api/', generalLimiter);
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+  ['body', 'params', 'headers'].forEach((key) => {
+    if (req[key]) {
+      req[key] = mongoSanitize.sanitize(req[key]);
+    }
+  });
+
+  Object.defineProperty(req, 'query', {
+    configurable: true,
+    enumerable: true,
+    value: mongoSanitize.sanitize(req.query),
+    writable: true
+  });
+
+  next();
+});
 
 app.use(cors({
     origin: ['http://localhost:3000'], 
@@ -69,4 +84,3 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/societies', require('./routes/society'));
 app.use(errorHandler);
-
